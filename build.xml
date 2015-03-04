@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<project name="binxml" default="build-all" basedir=".">
+
+	<!-- =================================================================== -->
+	<!-- Import the initial definitions                                      -->
+	<!-- =================================================================== -->
+	<property file="build.properties"/>
+
+	<available file="${ant.lib.jar}" property="ant.jar.present"/>
+	<available file="${collections.lib.jar}" property="collections.jar.present"/>
+
+	<!-- =================================================================== -->
+	<!-- Define the build class path -->
+	<!-- =================================================================== -->
+	<path id="build.class.path">
+		<pathelement location="${junit.lib.jar}"/>
+		<pathelement location="${xerces.lib.jar}"/>
+		<pathelement location="${xmlapis.lib.jar}"/>
+		<pathelement location="${collections.lib.jar}"/>
+		<pathelement location="${ant.lib.jar}"/>
+	</path>
+
+
+	<!-- =================================================================== -->
+	<!-- Prepares the directory structure -->
+	<!-- =================================================================== -->
+	<target name="prepare">
+		<mkdir dir="${build.dir}"/>
+		<mkdir dir="${distr.dir}"/>
+	</target>
+
+
+
+<!-- COMPILE -->
+
+	<!-- =================================================================== -->
+	<!-- Compile src -->
+	<!-- =================================================================== -->
+	<target name="compile-core" depends="prepare">
+		<echo message="Ant lib present                 = ${ant.jar.present}"/>
+		<echo message="Commons-collections lib present = ${collections.jar.present}"/>
+		<antcall target="compile"><param name="src.dir" value="${java.dir}"/></antcall>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- Compile test -->
+	<!-- =================================================================== -->
+	<target name="compile-tests" depends="prepare">
+		<antcall target="compile"><param name="src.dir" value="${test.dir}"/></antcall>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- Compile examples -->
+	<!-- =================================================================== -->
+	<target name="compile-examples" depends="prepare">
+		<antcall target="compile"><param name="src.dir" value="${examples.dir}"/></antcall>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- private. Compile the classes -->
+	<!-- =================================================================== -->
+	<target name="compile">
+		<javac
+			destdir="${build.dir}"
+			debug="on"
+			optimize="on"
+			srcdir="${src.dir}"
+			classpathref="build.class.path">
+			<or>
+				<selector if="collections.jar.present">
+					<filename name="**/FastArrayListComposite.java"/>
+				</selector>
+				<and>
+					<filename name="**/*.java"/>
+					<not>
+						<filename name="**/FastArrayListComposite.java"/>
+					</not>
+				</and>
+			</or>
+		</javac>
+	</target>
+
+
+
+<!-- BUILD -->
+
+	<!-- =================================================================== -->
+	<!-- Build the core JAR -->
+	<!-- =================================================================== -->
+	<target name="build-core" depends="compile-core">
+		<jar destfile="${distr.dir}/${core.jar.name}" basedir="${build.dir}">
+			<exclude name="org/binxml/app/**/*.*"/>
+			<exclude name="org/binxml/**/*Test.*"/>
+			<exclude name="org/binxml/**/*Tests.*"/>
+			<exclude name="org/binxml/**/*TestUtil.*"/>
+			<exclude name="org/binxml/**/*TestsBase.*"/>
+			<exclude name="org/binxml/**/*TestBase.*"/>
+		</jar>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- Build the tests JAR -->
+	<!-- =================================================================== -->
+	<target name="build-tests" depends="compile-tests">
+		<jar destfile="${distr.dir}/${tests.jar.name}" basedir="${build.dir}">
+			<include name="org/binxml/**/*Test.*"/>
+			<include name="org/binxml/**/*Tests.*"/>
+			<include name="org/binxml/**/*TestUtil.*"/>
+			<include name="org/binxml/**/*TestsBase.*"/>
+			<include name="org/binxml/**/*TestBase.*"/>
+		</jar>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- Build the example app JAR -->
+	<!-- =================================================================== -->
+	<target name="build-examples" depends="compile-examples">
+		<jar destfile="${distr.dir}/${examples.jar.name}" basedir="${build.dir}">
+			<include name="org/binxml/app/**/*.*"/>
+		</jar>
+	</target>
+
+	<!-- =================================================================== -->
+	<!-- Build all JARs -->
+	<!-- =================================================================== -->
+	<target name="build-all" depends="build-core, build-tests, build-examples"/>
+
+
+<!-- RUN -->
+
+	<!-- =================================================================== -->
+	<!-- Run example profiling app -->
+	<!-- =================================================================== -->
+	<target name="run-app" depends="build-core, build-examples">
+		<java	classname="org.binxml.app.ProfileBuilder">
+			<classpath>
+				<pathelement location="${distr.dir}/${core.jar.name}"/>
+				<pathelement location="${distr.dir}/${examples.jar.name}"/>
+				<path refid="build.class.path"/>
+			</classpath>
+			<arg value="--input"/>
+			<arg value="data/in/dom.test.1.xml"/>
+			<arg value="--boutput"/>
+			<arg value="data/out/dom.test.1.bxml"/>
+			<arg value="--xoutput"/>
+			<arg value="data/out/dom.test.1.xml"/>
+			<arg value="--profile"/>
+			<arg value="profile.html"/>
+		</java>
+	</target>
+
+</project>
